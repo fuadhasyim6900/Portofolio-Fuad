@@ -259,29 +259,39 @@ profile_to_pred_prep = train_copy_with_profile_to_pred_prep.loc[train_copy_with_
 # ---------------------------
 # Load model lokal
 # ---------------------------
-def make_prediction_local():
-    model_path = r"D:\Portofolio Fuad\Final Project Data Science\file\gradient_boosting_tuned.pkl"
-    try:
-        model = joblib.load(model_path)
-        return model.predict(profile_to_pred_prep)
-    except FileNotFoundError:
-        st.error(f"Model file tidak ditemukan di {model_path}")
-        return None
-    except Exception as e:
-        st.error(f"Terjadi error saat memuat model: {str(e)}")
-        return None
+import os
+import requests
 
+MODEL_URL = "https://raw.githubusercontent.com/fuadhasyim6900/Portofolio-Fuad/main/Final%20Project%20Data%20Science/file/gradient_boosting_tuned.pkl"
+MODEL_PATH = "gradient_boosting_tuned.pkl"
+
+@st.cache_resource
+def load_model():
+    if not os.path.exists(MODEL_PATH):
+        with st.spinner("Downloading model..."):
+            r = requests.get(MODEL_URL)
+            with open(MODEL_PATH, "wb") as f:
+                f.write(r.content)
+    return joblib.load(MODEL_PATH)
+
+def make_prediction():
+    try:
+        model = load_model()
+        return model.predict(profile_to_pred_prep)
+    except Exception as e:
+        st.error(f"Prediction error: {e}")
+        return None
+    
 # ---------------------------
 # Predict button
 # ---------------------------
 if st.button("Predict"):
     with st_lottie_spinner(lottie_loading_an, quality="high", height=200, width=200):
-        final_pred = make_prediction_local()
+        final_pred = make_prediction()
     if final_pred is not None:
         if final_pred[0] == 0:
             st.success("## You have been approved for a credit card 🎉")
             st.balloons()
         else:
             st.error("## Unfortunately, you have not been approved for a credit card ❌")
-
 
